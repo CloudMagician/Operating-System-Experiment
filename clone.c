@@ -6,26 +6,30 @@
 #include "stdlib.h"
 #include "string.h"
 #include "semaphore.h"
+#include "unistd.h"
 
-int producer(void *args);
+void producer(void *args);
 
-int consumer(void *args);
+void consumer(void *args);
 
 pthread_mutex_t mutex;
 
-sem_t product;
-sem_t warehouse;
+sem_t* product;
+sem_t* warehouse;
 
 char buffer[8][4];
 int bp=0;
 
 int main(int argc, const char * argv[]) {
     pthread_mutex_init(&mutex,NULL);
-    sem_init(&product,0,0);
-    sem_init(&warehouse,0,8);
+    product = sem_open("/psem",O_CREAT, S_IRUSR | S_IWUSR, 0);
+    warehouse = sem_open("/wsem",O_CREAT, S_IRUSR | S_IWUSR, 8);
+//    sem_init(&product,0,0);
+//    sem_init(&warehouse,0,8);
     int clone_flag,arg,retval;
     char *stack;
-    clone_flag = CLONE_VM|CLONE_SIGHAND|CLONE_FS|CLONE_FILES;
+//    clone_flag = CLONE_VM|CLONE_SIGHAND|CLONE_FS|CLONE_FILES;
+    clone_flag = 0x00000100|0x00000400|0x00000200|0x00000800;
     for(int i=0;i<2;i++)
     {  //创建四个线程
         arg = i;
@@ -36,16 +40,22 @@ int main(int argc, const char * argv[]) {
         //usleep(1000);
         usleep(1);
     }
+    
+    sem_close(product);
+    sem_unlink("/psem");
+    sem_close(warehouse);
+    sem_unlink("/wsem");
+    
     exit(1);
 }
-int producer(void* args)
+void producer(void* args)
 {
     int id = *((int*)args);
     int i;
     for(i=0;i<10;i++)
     {
         sleep(i+1);  //表现线程速度差别
-        sem_wait(&warehouse);
+        sem_wait(warehouse);
         pthread_mutex_lock(&mutex);
         if(id==0)
             strcpy(buffer[bp],"aaa\0");
@@ -54,25 +64,25 @@ int producer(void* args)
         bp++;
         printf("producer%d produce %s in %d\n",id,buffer[bp-1],bp-1);
         pthread_mutex_unlock(&mutex);
-        sem_post(&product);
+        sem_post(product);
     }
     printf("producer%d is over!\n",id);
 }
 
-int consumer(void *args)
+void consumer(void *args)
 {
     int id = *((int*)args);
     int i;
     for(i=0;i<10;i++)
     {
         sleep(10-i);  //表现线程速度差别
-        sem_wait(&product);
+        sem_wait(product);
         pthread_mutex_lock(&mutex);
         bp--;
         printf("consumer%d get %s in %d\n",id,buffer[bp],bp+1);
         strcpy(buffer[bp],"zzz\0");
         pthread_mutex_unlock(&mutex);
-        sem_post(&warehouse);
+        sem_post(warehouse);
     }
     printf("consumer%d is over!\n",id);
 }
