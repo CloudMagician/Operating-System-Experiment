@@ -38,6 +38,7 @@ int main(int argc,char *argv[])
     }
     hashfile_close(fd);
     showHashFile();
+    
     //Demo find Rec
     printf("\nFind Record...");
     fd = hashfile_open(FileNAME,O_RDWR,0);
@@ -52,12 +53,14 @@ int main(int argc,char *argv[])
     printf("Tag is <%d,%d>\t",tag.collision,tag.free);
     read(fd,&jt,sizeof(struct jtRecord));
     printf("Record is {%d,%s}\n",jt.key,jt.other);
+    
     //Demo Delete Rec
     printf("\nDelete Record...");
     fd = hashfile_open(FileNAME,O_RDWR,0);
     hashfile_delrec(fd,KEYOFFSET,KEYLEN,&rec[2]);
     hashfile_close(fd);
     showHashFile();
+    
     //Demo Read
     fd = hashfile_open(FileNAME,O_RDWR,0);
     char buf[32];
@@ -66,6 +69,7 @@ int main(int argc,char *argv[])
     printf("\nRead Record is {%d,%s}\n",
            ((struct jtRecord *)buf)->key,((struct jtRecord *)buf)->other);
     hashfile_close(fd);
+    
     //Demo Write
     printf("\nWrite Record...");
     fd = hashfile_open(FileNAME,O_RDWR,0);
